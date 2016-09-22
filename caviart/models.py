@@ -58,6 +58,8 @@ class VerificationFile(models.Model):
     last_mod = models.DateField(auto_now=True)
     content = models.FileField()
 
+    OWNER_FIELD = 'source__' + ProjectFile.OWNER_FIELD
+
     def verified(self):
         return all([x == 'V' for x in self.proof_obligations.all().values('status')])
 
@@ -72,3 +74,5 @@ class ProofObligation(models.Model):
     goal = models.CharField(max_length=100)
     strategies = models.TextField()
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='X')
+
+    OWNER_FIELD = 'clir__' + VerificationFile.OWNER_FIELD
