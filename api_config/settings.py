@@ -35,7 +35,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'api',
+    'caviart',
 ]
+
+if DEBUG:
+    INSTALLED_APPS += ['django_extensions']
+
 
 # Django CORS must be before CommonMiddlware if using USE_ETAGS=True
 MIDDLEWARE = [
