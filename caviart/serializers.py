@@ -51,7 +51,7 @@ class ProjectFileReadSerializer(NestedHyperlinkedModelSerializer):
     )
     class Meta:
         model = models.ProjectFile
-        fields = ('url', 'project', 'path', 'content', 'file_type', 'last_mod')
+        fields = ('url', 'project', 'path', 'content', 'file_type', 'last_mod', 'verified')
         extra_kwargs = {
             'url': {
                 'lookup_map': 'caviart.viewsets.ProjectFileViewSet'
