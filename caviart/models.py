@@ -66,10 +66,12 @@ class VerificationFile(models.Model):
     last_mod = models.DateTimeField(auto_now=True)
     content = models.FileField()
 
-    OWNER_FIELD = 'source__' + ProjectFile.OWNER_FIELD
-
     def verified(self):
         return all([x == 'V' for x in self.proof_obligations.all().values('status')])
+
+    objects = OwningQuerySet.as_manager()
+
+    OWNER_FIELD = 'source__' + ProjectFile.OWNER_FIELD
 
 
 class ProofObligation(models.Model):
@@ -82,5 +84,7 @@ class ProofObligation(models.Model):
     goal = models.CharField(max_length=100)
     strategies = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='X')
+
+    objects = OwningQuerySet.as_manager()
 
     OWNER_FIELD = 'clir__' + VerificationFile.OWNER_FIELD
