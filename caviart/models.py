@@ -63,7 +63,7 @@ class ProjectFile(models.Model):
 
 class VerificationFile(models.Model):
     source = models.ForeignKey(ProjectFile, related_name='verification_file_set')
-    last_mod = models.DateField(auto_now=True)
+    last_mod = models.DateTimeField(auto_now=True)
     content = models.FileField()
 
     OWNER_FIELD = 'source__' + ProjectFile.OWNER_FIELD
@@ -78,9 +78,9 @@ class ProofObligation(models.Model):
                       ('X', 'Undetermined'))
 
     clir = models.ForeignKey(VerificationFile, related_name='proof_obligations')
-    last_mod = models.DateField(auto_now=True)
+    last_mod = models.DateTimeField(auto_now=True)
     goal = models.CharField(max_length=100)
-    strategies = models.TextField()
+    strategies = models.TextField(null=True, blank=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='X')
 
     OWNER_FIELD = 'clir__' + VerificationFile.OWNER_FIELD
