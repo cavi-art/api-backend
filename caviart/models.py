@@ -66,17 +66,15 @@ class Operation(models.Model):
     log = models.TextField(null=True, blank=True)
 
 
-def get_file_storage():
-    def f(instance, filename):
-        if hasattr(instance, 'project'):
-            project = instance.project.id.hex
+def get_file_storage(instance, filename):
+    if hasattr(instance, 'project'):
+        project = instance.project.id.hex
 
-        path = ''
-        if hasattr(instance, 'path'):
-            path = instance.path
+    path = ''
+    if hasattr(instance, 'path'):
+        path = instance.path
 
-        return os.path.join(project, path)
-    return f
+    return os.path.join(project, path)
 
 
 @python_2_unicode_compatible
@@ -85,7 +83,7 @@ class ProjectFile(models.Model):
     path = models.CharField(max_length=255)
     file_type = models.CharField(max_length=80)
     last_mod = models.DateTimeField(auto_now=True)
-    content = models.FileField(upload_to=get_file_storage())
+    content = models.FileField(upload_to=get_file_storage)
 
     def natural_key(self):
         return (self.project, self.path)
