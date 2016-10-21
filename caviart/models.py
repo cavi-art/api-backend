@@ -1,10 +1,14 @@
 from __future__ import unicode_literals
 
-import uuid
+import os, shutil, uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save, pre_delete
+from django.dispatch import receiver
+from django.utils import timezone
 from six import python_2_unicode_compatible
+from . import tools
 
 
 class OwningQuerySet(models.QuerySet):
@@ -29,37 +33,50 @@ class Project(models.Model):
 
     OWNER_FIELD = 'owner'
 
+    def get_project_root(self):
+        return os.path.join(settings.MEDIA_ROOT, self.id.hex)
+
     def __str__(self):
         return ("project-%s" % self.id)
 
+@receiver(pre_save, sender=Project)
+def create_dir_on_project_creation(sender, instance, **kwargs):
+    os.mkdir(instance.get_project_root(), mode=0o775)
+
+@receiver(pre_delete, sender=Project)
+def remove_dir_recursively_on_project_deletion(sender, instance, **kwargs):
+    shutil.rmtree(instance.get_project_root())
+
 
 class Operation(models.Model):
-    name = models.CharField(max_length=255)
-    cmdline = models.CharField(max_length=255)
-    description = models.TextField()
-    use_shell = models.BooleanField()
-    timeout = models.DecimalField()
+    STATUS_CHOICES = (('P', 'Planned'),
+                      ('R', 'Running'),
+                      ('F', 'Finished'),
+                      ('X', 'Crashed'),
+    )
 
-class InputFileType(models.Model):
-    operation = models.ForeignKey(Operation)
-    name = models.CharField(max_length=15)
-    content_getter = models.TextField() # this may be Python code
-
-class OutputFileType(models.Model):
-    operation = models.ForeignKey(Operation)
-    name = models.CharField(max_length=15, null=True, blank=True)
-    content_setter = models.TextField() # this may be Python code
-
-
-class ProjectOperationInputFile(models.Model):
+    type = models.CharField(
+        max_length=40,
+        choices=tools.default_task_queue.get_registered_tool_choices(),
+    )
     project = models.ForeignKey(Project)
-    placeholder = models.ForeignKey(InputFileType)
-    content = models.FileField()
+    sent_by = models.ForeignKey(settings.AUTH_USER_MODEL)
+    sent_at = models.DateTimeField(default=timezone.now)
+    status = models.CharField(choices=STATUS_CHOICES, max_length=10)
+    log = models.TextField(null=True, blank=True)
 
-class ProjectOperationOutputFile(models.Model):
-    project = models.ForeignKey(Project)
-    placeholder = models.ForeignKey(OutputFileType)
-    content = models.FileField()
+
+def get_file_storage():
+    def f(instance, filename):
+        if hasattr(instance, 'project'):
+            project = instance.project.id.hex
+
+        path = ''
+        if hasattr(instance, 'path'):
+            path = instance.path
+
+        return os.path.join(project, path)
+    return f
 
 
 @python_2_unicode_compatible
@@ -68,7 +85,7 @@ class ProjectFile(models.Model):
     path = models.CharField(max_length=255)
     file_type = models.CharField(max_length=80)
     last_mod = models.DateTimeField(auto_now=True)
-    content = models.FileField()
+    content = models.FileField(upload_to=get_file_storage())
 
     def natural_key(self):
         return (self.project, self.path)
@@ -89,31 +106,10 @@ class ProjectFile(models.Model):
     class Meta:
         unique_together = (('project', 'path'),) # natural key
 
-
-class VerificationFile(models.Model):
-    source = models.ForeignKey(ProjectFile, related_name='verification_file_set')
-    last_mod = models.DateTimeField(auto_now=True)
-    content = models.FileField()
-
-    def verified(self):
-        return all([x == 'V' for x in self.proof_obligations.all().values('status')])
-
-    objects = OwningQuerySet.as_manager()
-
-    OWNER_FIELD = 'source__' + ProjectFile.OWNER_FIELD
-
-
-class ProofObligation(models.Model):
-    STATUS_CHOICES = (('V', 'Verified'),
-                      ('N', 'Not verified'),
-                      ('X', 'Undetermined'))
-
-    clir = models.ForeignKey(VerificationFile, related_name='proof_obligations')
-    last_mod = models.DateTimeField(auto_now=True)
-    goal = models.CharField(max_length=100)
-    strategies = models.TextField(null=True, blank=True)
-    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='X')
-
-    objects = OwningQuerySet.as_manager()
-
-    OWNER_FIELD = 'clir__' + VerificationFile.OWNER_FIELD
+@receiver(pre_delete, sender=ProjectFile)
+def really_remove_file_on_database_deletion(sender, instance, **kwargs):
+    os.unlink(os.path.join(
+        instance.project.get_project_root(),
+        instance.path
+        )
+    )

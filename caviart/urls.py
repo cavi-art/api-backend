@@ -13,16 +13,13 @@ with router.register(r'projects',
                      viewsets.ProjectViewSet,
                      base_name='project') as project:
 
-    with project.register(r'files',
-                          viewsets.ProjectFileViewSet,
-                          base_name='projectfile') as file:
-        with file.register(r'vu', # verification-unit
-                           viewsets.VerificationFileViewSet,
-                           base_name='verificationfile') as verification:
-            verification.register(r'proofs',
-                                  viewsets.ProofObligationViewSet,
-                                  base_name='proofobligation')
+    project.register(r'ops',
+                     viewsets.OperationViewSet,
+                     base_name='operation')
 
+    project.register(r'files',
+                     viewsets.ProjectFileViewSet,
+                     base_name='projectfile')
 
 urlpatterns = []
 urlpatterns += router.urls

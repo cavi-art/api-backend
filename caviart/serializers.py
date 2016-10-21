@@ -1,8 +1,10 @@
 
+from django.utils import timezone
+
 from rest_framework.authentication import get_user_model
-from rest_framework.fields import ListField, SerializerMethodField
+from rest_framework.fields import HiddenField, ListField, ModelField, SerializerMethodField
 from rest_framework.reverse import reverse
-from rest_framework.serializers import HyperlinkedModelSerializer
+from rest_framework.serializers import HyperlinkedModelSerializer, SlugRelatedField, ValidationError
 
 from caviart import models
 from rest_framework_extensions.fields import NestedHyperlinkedIdentityField
@@ -21,14 +23,36 @@ class ProjectSerializer(HyperlinkedModelSerializer):
         read_only=True,
         view_name='projectfile-list',
     )
+    operations = NestedHyperlinkedIdentityField(
+        read_only=True,
+        view_name='operation-list',
+    )
     class Meta:
         model = models.Project
         depth = 0
-        fields = ('url', 'owner', 'files')
+        fields = ('url', 'owner', 'files', 'operations')
         extra_kwargs = {
             'url': {
                 'lookup_url_kwarg': 'project_id'
             }
+        }
+
+class OperationSerializer(NestedHyperlinkedModelSerializer):
+    sent_at = HiddenField(default=timezone.now)
+    class Meta:
+        model = models.Operation
+        depth = 0
+        extra_kwargs = {
+            'url': {
+                'lookup_map': 'caviart.viewsets.OperationViewSet'
+            },
+            'project': {
+                'lookup_map': 'caviart.viewsets.ProjectViewSet'
+            },
+            'sent_by': {
+                'lookup_map': 'caviart.viewsets.UserProfileViewSet',
+                'read_only': True,
+            },
         }
 
 class ProjectFileSerializer(NestedHyperlinkedModelSerializer):
@@ -52,57 +76,15 @@ class ProjectFileReadSerializer(NestedHyperlinkedModelSerializer):
         read_only=True,
         view_name='projectfile-raw',
     )
-    verify_url = NestedHyperlinkedIdentityField(
-        view_name='verificationfile-list',
-        lookup_map='caviart.viewsets.ProjectFileViewSet',
-    )
 
     class Meta:
         model = models.ProjectFile
-        fields = ('url', 'project', 'path', 'content', 'file_type', 'last_mod', 'verified', 'verify_url')
+        fields = ('url', 'project', 'path', 'content', 'file_type', 'last_mod')
         extra_kwargs = {
             'url': {
                 'lookup_map': 'caviart.viewsets.ProjectFileViewSet'
             },
             'project': {
                 'lookup_map': 'caviart.viewsets.ProjectViewSet',
-            },
-        }
-
-
-class VerificationFileSerializer(NestedHyperlinkedModelSerializer):
-    class Meta:
-        model = models.VerificationFile
-        fields = ('url', 'source', 'content', 'last_mod', 'proof_obligations')
-        extra_kwargs = {
-            'url': {
-                'lookup_map': 'caviart.viewsets.VerificationFileViewSet'
-            },
-            'source': {
-                'lookup_map': 'caviart.viewsets.ProjectFileViewSet',
-            },
-            'content': {
-                'use_url': False,
-            },
-            'proof_obligations': {
-                'read_only': True,
-                'lookup_map': 'caviart.viewsets.ProofObligationViewSet'
-            },
-        }
-
-
-class ProofObligationSerializer(NestedHyperlinkedModelSerializer):
-    class Meta:
-        model = models.ProofObligation
-        fields = ('url', 'clir', 'last_mod', 'goal', 'strategies', 'status')
-        extra_kwargs = {
-            'url': {
-                'lookup_map': 'caviart.viewsets.ProofObligationViewSet',
-            },
-            'clir': {
-                'lookup_map': 'caviart.viewsets.VerificationFileViewSet',
-            },
-            'strategies': {
-                'allow_null': True,
             },
         }
