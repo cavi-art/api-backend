@@ -73,6 +73,7 @@ class ProjectFileViewSet(NestedViewSetMixin, ModelViewSet):
             return serializers.ProjectFileReadSerializer
         return self.serializer_class
 
+from . import tasks
 
 class OperationViewSet(NestedViewSetMixin, ModelViewSet):
     """This implements different Operations that may exist at a given
@@ -101,13 +102,13 @@ point in time.
         return Response(response)
 
     @detail_route()
-    def run(self, request, **kwargs):
+    def rerun(self, request, **kwargs):
+        """Manually request a task to be rerun."""
         op = self.get_object()
-        op = tools.default_task_queue.run_task(op)
+        task = tasks.run_tool.delay(op.pk)
 
-        serializer = self.get_serializer(op)
-        return Response(serializer.data)
+        return Response({"running_id": task.id})
 
 
     def perform_create(self, serializer):
-        serializer.save(sent_by=self.request.user)
+        obj = serializer.save(sent_by=self.request.user)
