@@ -1,14 +1,14 @@
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import os, shutil, uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save, pre_delete
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from six import python_2_unicode_compatible
-from . import tools
+from . import tasks, tools
 
 
 class OwningQuerySet(models.QuerySet):
@@ -53,6 +53,8 @@ class Operation(models.Model):
                       ('R', 'Running'),
                       ('F', 'Finished'),
                       ('X', 'Crashed'),
+                      ('C', 'Canceled'),
+                      ('CD', 'Canceled due to dependencies'),
     )
 
     type = models.CharField(
@@ -65,6 +67,12 @@ class Operation(models.Model):
     sent_at = models.DateTimeField(default=timezone.now)
     status = models.CharField(choices=STATUS_CHOICES, max_length=10)
     log = models.TextField(null=True, blank=True)
+
+@receiver(post_save, sender=Operation)
+def send_operation_to_queue_if_planned(sender, instance, **kwargs):
+    if instance.status == Operation.STATUS_CHOICES[0][0]:
+        print("Run task on planned update for ", instance)
+        tasks.run_tool.delay(instance.pk)
 
 
 def get_file_storage(instance, filename):
