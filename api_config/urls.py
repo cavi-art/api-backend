@@ -19,9 +19,11 @@ from django.conf.urls.static import static
 from django.contrib import admin
 
 from caviart.urls import urlpatterns as caviart_urls
-
+from jwt_knox.urls import urlpatterns as jwt_knox_urls
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include(caviart_urls)),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(
+    settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
+)

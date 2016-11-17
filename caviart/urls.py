@@ -1,9 +1,12 @@
 
-from rest_framework_extensions.routers import ExtendedDefaultRouter
+from jwt_knox.viewsets import JWTKnoxAPIViewSet
 
 from . import viewsets
+from rest_framework_extensions.routers import ExtendedDefaultRouter
+
 
 router = ExtendedDefaultRouter(trailing_slash=False)
+router.register(r'auth', JWTKnoxAPIViewSet, base_name='jwt_knox')
 router.register(r'users', viewsets.UserProfileViewSet)
 
 with router.register(r'projects',
