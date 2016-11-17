@@ -1,7 +1,10 @@
+from __future__ import unicode_literals
+
 import uuid
 
 from django.conf import settings
 from django.db import models
+from six import python_2_unicode_compatible
 
 
 class OwningQuerySet(models.QuerySet):
@@ -17,6 +20,7 @@ class OwningQuerySet(models.QuerySet):
     pass
 
 
+@python_2_unicode_compatible
 class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
@@ -25,15 +29,16 @@ class Project(models.Model):
 
     OWNER_FIELD = 'owner'
 
-    def __unicode__(self):
-        return ("project-%s" % self.uuid)
+    def __str__(self):
+        return ("project-%s" % self.id)
 
 
+@python_2_unicode_compatible
 class ProjectFile(models.Model):
     project = models.ForeignKey(Project, related_name='files')
     path = models.CharField(max_length=255)
     file_type = models.CharField(max_length=80)
-    last_mod = models.DateField(auto_now=True)
+    last_mod = models.DateTimeField(auto_now=True)
     content = models.FileField()
 
     def natural_key(self):
@@ -44,6 +49,9 @@ class ProjectFile(models.Model):
         if self.verification_file_set.count() > 0:
             return all([file.verified() for file in self.verification_file_set.all()])
         return False
+
+    def __str__(self):
+        return ("file %s (%s) in %s" % (self.path, self.file_type, self.project))
 
     objects = OwningQuerySet.as_manager()
 
