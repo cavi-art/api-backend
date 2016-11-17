@@ -1,21 +1,15 @@
 from django.contrib import admin
 
-from caviart.models import (Project, ProjectFile, ProofObligation,
-    VerificationFile)
+from . import models
 
-@admin.register(Project)
+@admin.register(models.Project)
 class ProjectAdmin(admin.ModelAdmin):
     pass
 
-@admin.register(ProjectFile)
+@admin.register(models.ProjectFile)
 class ProjectFileAdmin(admin.ModelAdmin):
     pass
 
-@admin.register(ProofObligation)
-class VerificationFileAdmin(admin.ModelAdmin):
+@admin.register(models.Operation)
+class OperationAdmin(admin.ModelAdmin):
     pass
-
-@admin.register(VerificationFile)
-class ProofObligationAdmin(admin.ModelAdmin):
-    pass
-
