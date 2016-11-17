@@ -1,3 +1,11 @@
+"""
+Celery config for api_config project.
+
+It exposes the Celery applicatoin as a module-level variable named ``app``.
+
+For more information on this file, see
+[celery docs]
+"""
 from __future__ import absolute_import, unicode_literals
 
 import os
