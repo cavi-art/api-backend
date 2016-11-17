@@ -60,6 +60,7 @@ class Operation(models.Model):
         choices=tools.default_task_queue.get_registered_tool_choices(),
     )
     project = models.ForeignKey(Project)
+    triggered_by = models.ForeignKey('self', on_delete=models.CASCADE, null=True)
     sent_by = models.ForeignKey(settings.AUTH_USER_MODEL)
     sent_at = models.DateTimeField(default=timezone.now)
     status = models.CharField(choices=STATUS_CHOICES, max_length=10)
