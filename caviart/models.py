@@ -1,16 +1,29 @@
+import uuid
+
+from django.conf import settings
 from django.db import models
-from rest_framework.authentication import get_user_model
 
 
 class Project(models.Model):
-    uuid = models.ShortUUIDField(primary_key=True)
-    owner = models.ForeignKey(get_user_model())
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+
+    def __unicode__(self):
+        return ("project-%s" % self.uuid)
+
 
 class ProjectFile(models.Model):
-    path = models.FilePathField(max_length=255)
-    file_type = models.CharField(max_length=10)
+    project = models.ForeignKey(Project, related_name='files')
+    path = models.CharField(max_length=255)
+    file_type = models.CharField(max_length=80)
     last_mod = models.DateField(auto_now=True)
     content = models.FileField()
+
+    def natural_key(self):
+        return (self.project, self.path)
+
+    class Meta:
+        unique_together = (('project', 'path'),) # natural key
 
 class VerificationFile(models.Model):
     source = models.ForeignKey(ProjectFile)
