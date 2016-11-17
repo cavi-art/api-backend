@@ -9,16 +9,10 @@ from rest_framework.reverse import reverse
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from caviart import models, serializers
+from caviart.filters import IsOwnerFilterBackend, ParentLookupMapFilterBackend
 from caviart.permissions import IsOwnerOrAdmin
 from rest_framework_extensions.mixins import NestedViewSetMixin
 
-
-class IsOwnerFilterBackend(filters.BaseFilterBackend):
-    def filter_queryset(self, request, queryset, view):
-        if request.user.is_authenticated():
-            return queryset.for_owner(request.user)
-        else:
-            return []
 
 class UserProfileViewSet(ReadOnlyModelViewSet):
     queryset = get_user_model().objects.all()
@@ -43,7 +37,7 @@ class ProjectFileViewSet(NestedViewSetMixin, ModelViewSet):
     lookup_url_kwarg = 'file_id'
     parent_lookup_map = { 'project_id': 'project.id' }
     queryset = models.ProjectFile.objects.all()
-    filter_backends = (IsOwnerFilterBackend,)
+    filter_backends = (IsOwnerFilterBackend, ParentLookupMapFilterBackend,)
     permission_classes = (IsOwnerOrAdmin,)
     serializer_class = serializers.ProjectFileSerializer
     renderer_classes = (renderers.JSONRenderer, renderers.BrowsableAPIRenderer,)
@@ -70,9 +64,6 @@ class ProjectFileViewSet(NestedViewSetMixin, ModelViewSet):
                                       })
         return Response(data)
 
-    def get_queryset(self):
-        return self.queryset.filter(project=self.kwargs['project_id'])
-
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return serializers.ProjectFileReadSerializer
@@ -87,6 +78,7 @@ class VerificationFileViewSet(NestedViewSetMixin, ModelViewSet):
         'file_id': 'source.id',
     }
     queryset = models.VerificationFile.objects.all()
+    filter_backends = (IsOwnerFilterBackend, ParentLookupMapFilterBackend,)
     permission_classes = (IsOwnerOrAdmin,)
     serializer_class = serializers.VerificationFileSerializer
 
@@ -125,5 +117,6 @@ class ProofObligationViewSet(NestedViewSetMixin, ModelViewSet):
         'vfile_id': 'clir.id',
     }
     queryset = models.ProofObligation.objects.all()
+    filter_backends = (IsOwnerFilterBackend, ParentLookupMapFilterBackend,)
     permission_classes = (IsOwnerOrAdmin,)
     serializer_class = serializers.ProofObligationSerializer
