@@ -39,6 +39,12 @@ class ProjectFile(models.Model):
     def natural_key(self):
         return (self.project, self.path)
 
+    def verified(self):
+        # FIXME check last_mod dates
+        if self.verification_file_set.count() > 0:
+            return all([file.verified() for file in self.verification_file_set.all()])
+        return False
+
     objects = OwningQuerySet.as_manager()
 
     OWNER_FIELD = 'project__' + Project.OWNER_FIELD
@@ -46,15 +52,23 @@ class ProjectFile(models.Model):
     class Meta:
         unique_together = (('project', 'path'),) # natural key
 
+
 class VerificationFile(models.Model):
-    source = models.ForeignKey(ProjectFile)
+    source = models.ForeignKey(ProjectFile, related_name='verification_file_set')
     last_mod = models.DateField(auto_now=True)
     content = models.FileField()
 
+    def verified(self):
+        return all([x == 'V' for x in self.proof_obligations.all().values('status')])
+
+
 class ProofObligation(models.Model):
-    clir = models.ForeignKey(VerificationFile)
+    STATUS_CHOICES = (('V', 'Verified'),
+                      ('N', 'Not verified'),
+                      ('X', 'Undetermined'))
+
+    clir = models.ForeignKey(VerificationFile, related_name='proof_obligations')
     last_mod = models.DateField(auto_now=True)
     goal = models.CharField(max_length=100)
     strategies = models.TextField()
-    status = models.CharField(max_length=1)
-    
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='X')
