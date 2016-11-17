@@ -33,6 +33,35 @@ class Project(models.Model):
         return ("project-%s" % self.id)
 
 
+class Operation(models.Model):
+    name = models.CharField(max_length=255)
+    cmdline = models.CharField(max_length=255)
+    description = models.TextField()
+    use_shell = models.BooleanField()
+    timeout = models.DecimalField()
+
+class InputFileType(models.Model):
+    operation = models.ForeignKey(Operation)
+    name = models.CharField(max_length=15)
+    content_getter = models.TextField() # this may be Python code
+
+class OutputFileType(models.Model):
+    operation = models.ForeignKey(Operation)
+    name = models.CharField(max_length=15, null=True, blank=True)
+    content_setter = models.TextField() # this may be Python code
+
+
+class ProjectOperationInputFile(models.Model):
+    project = models.ForeignKey(Project)
+    placeholder = models.ForeignKey(InputFileType)
+    content = models.FileField()
+
+class ProjectOperationOutputFile(models.Model):
+    project = models.ForeignKey(Project)
+    placeholder = models.ForeignKey(OutputFileType)
+    content = models.FileField()
+
+
 @python_2_unicode_compatible
 class ProjectFile(models.Model):
     project = models.ForeignKey(Project, related_name='files')
